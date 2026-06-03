@@ -7,6 +7,9 @@ services:
       - "8000:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CHROMA_PATH=/data/chromadb
+    volumes:
+      - chromadb_data:/data/chromadb
     restart: unless-stopped
 
   frontend:
@@ -18,3 +21,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  chromadb_data:

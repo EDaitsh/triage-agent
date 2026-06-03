@@ -38,3 +38,23 @@ EVALUATOR_PROMPT = COMPANY_TONE + """
   "needs_human": true/false
 }
 """
+
+# ── RAG-enriched Worker prompt ───────────────────────────────────────────────
+# Used when RAG context is available; {rag_context} is replaced at runtime.
+RAG_WORKER_PROMPT_TEMPLATE = COMPANY_TONE + """
+הכינו פלט גולמי בהתאם לקטגוריה.
+support/inquiry – תשובה ישירה. השתמשו קודם במידע הארגוני המצורף.
+bug – טיוטת Issue ל‑GitHub (title, body, labels, severity, missing_details).
+spam – blocked.
+urgent_human – human_handoff.
+
+--- מידע ארגוני רלוונטי ---
+{rag_context}
+--- סוף מידע ארגוני ---
+
+החזירו תמיד JSON עם המבנה הבא בלבד:
+{{
+  "result": "<תוכן התגובה כטקסט>",
+  "missing_details": ["<פרט חסר 1>", "..."]
+}}
+"""

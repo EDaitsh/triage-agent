@@ -11,7 +11,9 @@ client = AsyncOpenAI(
 )
 
 
-async def structured_call(prompt: str, input_data: str, return_type: type[BaseModel]) -> BaseModel:
+async def structured_call(
+    prompt: str, input_data: str, return_type: type[BaseModel]
+) -> BaseModel:
     response = await client.responses.parse(
         model=MODEL,
         input=[
@@ -21,3 +23,15 @@ async def structured_call(prompt: str, input_data: str, return_type: type[BaseMo
         text_format=return_type,
     )
     return response.output_parsed
+
+
+async def text_call(system_prompt: str, user_input: str) -> str:
+    """Plain-text LLM call, returns the model's output as a string."""
+    response = await client.responses.create(
+        model=MODEL,
+        input=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_input},
+        ],
+    )
+    return response.output_text

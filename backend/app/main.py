@@ -33,7 +33,9 @@ class RejectRequest(BaseModel):
 
 # ---------- Endpoints ----------
 @app.post("/message", status_code=202)
-async def submit_message(body: MessageRequest, background_tasks: BackgroundTasks):
+async def submit_message(
+    body: MessageRequest, background_tasks: BackgroundTasks
+):
     """שליחת הודעה חדשה – מחזיר task_id מיד."""
     task_id = create_task({"message": body.message})
     background_tasks.add_task(run_workflow, task_id, body.message)
@@ -56,8 +58,12 @@ async def approve_task(task_id: str, body: ApproveRequest):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     if task.get("state") != "pending_approval":
-        raise HTTPException(status_code=400, detail="Task is not pending approval")
-    update_task(task_id, state="approved", approved_output=body.approved_output)
+        raise HTTPException(
+            status_code=400, detail="Task is not pending approval"
+        )
+    update_task(
+        task_id, state="approved", approved_output=body.approved_output
+    )
     return {"status": "approved"}
 
 
@@ -68,6 +74,87 @@ async def reject_task(task_id: str, body: RejectRequest):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     if task.get("state") != "pending_approval":
-        raise HTTPException(status_code=400, detail="Task is not pending approval")
+        raise HTTPException(
+            status_code=400, detail="Task is not pending approval"
+        )
     update_task(task_id, state="rejected", approval_comment=body.comment)
     return {"status": "rejected"}
+
+
+# ── RAG Schemas ──────────────────────────────────────────────────────────────
+class IngestRequest(BaseModel):
+    text: str
+    source: str = "manual"
+
+
+class QueryRequest(BaseModel):
+    question: str
+
+
+class EvalsRequest(BaseModel):
+    text: str
+    n_questions: int = 5
+    source: str = "eval_doc"
+
+
+# ── RAG Endpoints ────────────────────────────────────────────────────────────
+@app.post("/rag/ingest", status_code=201)
+async def rag_ingest(body: IngestRequest):
+    """הכנסת מסמך טקסט למאגר הידע הווקטורי."""
+    from .rag import ingest_data
+    n_chunks = await ingest_data(body.text, source=body.source)
+    return {
+        "status": "ingested",
+        "chunks_added": n_chunks,
+        "source": body.source,
+    }
+
+
+@app.post("/rag/query")
+async def rag_query(body: QueryRequest):
+    """שאילתת RAG – החזרת תשובה מבוססת מאגר ידע."""
+    from .rag import answer_question
+    result = await answer_question(body.question)
+    return result
+
+
+@app.get("/rag/status")
+async def rag_status():
+    """סטטיסטיקות מאגר הידע."""
+    from .rag import get_collection_stats
+    import asyncio
+    stats = await asyncio.to_thread(get_collection_stats)
+    return stats
+
+
+@app.delete("/rag/clear", status_code=200)
+async def rag_clear():
+    """מחיקת כל ה-chunks מהמאגר (לאיפוס לפני ingestion מחדש)."""
+    import asyncio
+    import chromadb as _chromadb
+    from .rag import CHROMA_PATH, COLLECTION_NAME
+
+    def _clear():
+        client = _chromadb.PersistentClient(path=CHROMA_PATH)
+        client.delete_collection(COLLECTION_NAME)
+        client.get_or_create_collection(
+            name=COLLECTION_NAME,
+            metadata={"hnsw:space": "cosine"},
+        )
+        return {"status": "cleared"}
+
+    return await asyncio.to_thread(_clear)
+
+
+@app.post("/rag/evals")
+async def rag_evals(body: EvalsRequest, background_tasks: BackgroundTasks):
+    """
+    הפעלת pipeline הערכה:
+    ingest → יצירת שאלות → RAG → ניקוד LLM.
+    מחזיר תוצאות מלאות (עשוי לקחת מספר שניות).
+    """
+    from .rag_evals import run_evals
+    results = await run_evals(
+        body.text, n_questions=body.n_questions, source=body.source
+    )
+    return results

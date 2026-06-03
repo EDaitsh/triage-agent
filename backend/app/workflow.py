@@ -4,7 +4,12 @@ from typing import Optional
 
 from backend.app.llm import structured_call
 from backend.app.models import EvaluatorResult, RouterDecision, WorkerOutput
-from backend.app.prompts import EVALUATOR_PROMPT, ROUTER_PROMPT, WORKER_PROMPT
+from backend.app.prompts import (
+    EVALUATOR_PROMPT,
+    RAG_WORKER_PROMPT_TEMPLATE,
+    ROUTER_PROMPT,
+    WORKER_PROMPT,
+)
 from backend.app.store import create_task, get_task, update_task
 
 
@@ -13,19 +18,44 @@ async def run_workflow_cli(message: str):
     print(f"[{task_id}] משימה נוצרה")
     await run_workflow(task_id, message)
     task = get_task(task_id)
-    print(f"[{task_id}] הסתיים בסטטוס: {task.get('state')} – תוצאה: {task.get('final_output')}")
+    state = task.get('state')
+    output = task.get('final_output')
+    print(f"[{task_id}] הסתיים בסטטוס: {state} – תוצאה: {output}")
 
 
 async def run_workflow(task_id: str, message: str):
     try:
         # 1. Router
         update_task(task_id, state="routing")
-        router: RouterDecision = await structured_call(ROUTER_PROMPT, message, RouterDecision)
+        router: RouterDecision = await structured_call(
+            ROUTER_PROMPT, message, RouterDecision
+        )
         update_task(task_id, router=router.model_dump())
 
         # 2. Worker + Evaluator (עד 2 ניסיונות)
         worker_output: Optional[WorkerOutput] = None
         evaluator: Optional[EvaluatorResult] = None
+
+        # RAG retrieval – inject organisational context for support/inquiry
+        rag_context = ""
+        if router.category in {"support", "inquiry"}:
+            try:
+                from backend.app.rag import retrieve
+                docs = await retrieve(message)
+                if docs:
+                    rag_context = "\n\n".join(
+                        f"[{d['source']}]:\n{d['text']}" for d in docs
+                    )
+            except Exception:
+                pass  # RAG is optional; continue without it
+
+        worker_prompt = (
+            RAG_WORKER_PROMPT_TEMPLATE.format(
+                rag_context=rag_context or "אין מידע ארגוני זמין."
+            )
+            if rag_context is not None
+            else WORKER_PROMPT
+        )
 
         for attempt in range(1, 3):
             update_task(task_id, state=f"working_attempt_{attempt}")
@@ -33,11 +63,15 @@ async def run_workflow(task_id: str, message: str):
                 {
                     "message": message,
                     "router_decision": router.model_dump(),
-                    "previous_feedback": evaluator.model_dump() if evaluator else None,
+                    "previous_feedback": (
+                        evaluator.model_dump() if evaluator else None
+                    ),
                 },
                 ensure_ascii=False,
             )
-            worker_output = await structured_call(WORKER_PROMPT, worker_input, WorkerOutput)
+            worker_output = await structured_call(
+                worker_prompt, worker_input, WorkerOutput
+            )
             update_task(task_id, worker_output=worker_output.model_dump())
 
             update_task(task_id, state="evaluating")
@@ -49,7 +83,9 @@ async def run_workflow(task_id: str, message: str):
                 },
                 ensure_ascii=False,
             )
-            evaluator = await structured_call(EVALUATOR_PROMPT, eval_input, EvaluatorResult)
+            evaluator = await structured_call(
+                EVALUATOR_PROMPT, eval_input, EvaluatorResult
+            )
             update_task(task_id, evaluator=evaluator.model_dump())
 
             if evaluator.passed:
@@ -65,7 +101,13 @@ async def run_workflow(task_id: str, message: str):
         )
 
         if needs_hitl:
-            update_task(task_id, state="pending_approval", final_output=worker_output.model_dump() if worker_output else None)
+            update_task(
+                task_id,
+                state="pending_approval",
+                final_output=(
+                    worker_output.model_dump() if worker_output else None
+                ),
+            )
             for _ in range(300):  # עד 5 דקות
                 task = get_task(task_id)
                 if task and task.get("state") in {"approved", "rejected"}:
@@ -79,7 +121,13 @@ async def run_workflow(task_id: str, message: str):
                 worker_output = WorkerOutput(**task["approved_output"])
 
         # 4. סיום
-        update_task(task_id, state="completed", final_output=worker_output.model_dump() if worker_output else None)
+        update_task(
+            task_id,
+            state="completed",
+            final_output=(
+                worker_output.model_dump() if worker_output else None
+            ),
+        )
 
     except Exception as e:
         update_task(task_id, state="error", error=str(e))

@@ -4,3 +4,5 @@ openai==2.35.0
 httpx==0.28.1
 pydantic==2.13.4
 python-dotenv==1.2.2
+chromadb==0.6.3
+python-multipart==0.0.20

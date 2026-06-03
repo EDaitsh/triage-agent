@@ -1,0 +1,184 @@
+# TechSaaS – מדריך ידע פנימי לתמיכה
+# ============================================================
+# מסמך זה מהווה את בסיס הידע של מערכת התמיכה הטכנית של TechSaaS.
+# יש להשתמש במידע זה בלבד לצורך מענה ללקוחות.
+
+## תמחור ומנויים
+
+מנוי Basic – 29 דולר לחודש
+- עד 5 משתמשים
+- 10 GB אחסון
+- תמיכה בדוא"ל בלבד
+- זמן תגובה: עד 24 שעות עסקיות
+
+מנוי Pro – 79 דולר לחודש
+- עד 25 משתמשים
+- 100 GB אחסון
+- תמיכה מועדפת בדוא"ל וצ'אט
+- גישה ל-API
+- זמן תגובה: עד 4 שעות עסקיות, 09:00–18:00
+
+מנוי Enterprise – מחיר מותאם
+- משתמשים ללא הגבלה
+- אחסון ללא הגבלה
+- SLA מותאם
+- Customer Success Manager ייעודי
+- תמיכה 24/7
+- זמן תגובה ל-Critical Issues: תוך שעה
+
+## שחזור ואיפוס סיסמה
+
+1. לחצו על "שכחתי סיסמה" בדף הכניסה.
+2. הזינו את כתובת האימייל המשויכת לחשבון.
+3. בדקו את תיבת הדואר הנכנס (כולל ספאם) לקישור האיפוס.
+4. הקישור תקף ל-24 שעות בלבד.
+5. לאחר האיפוס יש להתחבר מחדש בכל המכשירים הפעילים.
+
+אם האימייל לא מגיע תוך 5 דקות:
+- ודאו שהכתובת נכונה
+- בדקו את תיקיית הספאם / Promotions
+- פנו לתמיכה עם כתובת האימייל
+
+## API ו-Webhooks
+
+Endpoint ראשי: https://api.techsaas.io/v2
+אימות: Bearer token ב-header (Authorization: Bearer <TOKEN>)
+
+מגבלות Rate Limit:
+- Basic: 1,000 בקשות לשעה
+- Pro: 10,000 בקשות לשעה
+- Enterprise: ללא מגבלה
+
+אירועי Webhook נתמכים:
+- user.created
+- user.deleted
+- user.updated
+- payment.success
+- payment.failed
+- subscription.changed
+- subscription.cancelled
+
+הגדרת Webhook: Settings > Integrations > Webhooks > Add Endpoint
+
+## ניהול צוות ומשתמשים
+
+הזמנת משתמש: Settings > Team > Invite Members
+- הזמנות פגות תוקף לאחר 7 ימים
+- ניתן לשלוח הזמנה חוזרת אם פגה
+
+תפקידים:
+- Admin – גישה מלאה לכל ההגדרות, החיוב וניהול המשתמשים
+- Editor – יצירה ועריכה של תוכן, ללא גישה לחיוב
+- Viewer – צפייה בלבד, ללא יכולת עריכה
+
+הסרת משתמש: Settings > Team > לחץ על שם המשתמש > Remove from Team
+נתוני המשתמש המוסר נשמרים ב-audit log.
+
+## חיוב ותשלומים
+
+- חיוב מתבצע ב-1 לכל חודש
+- אמצעי תשלום: Visa, Mastercard, American Express, PayPal
+- חשבוניות נשלחות אוטומטית לאימייל הרשום ב-Settings
+- הורדת חשבוניות: Settings > Billing > Invoices
+- שינוי מנוי: השינוי ייכנס לתוקף בחיוב הבא (1 לחודש הבא)
+- ביטול מנוי: הגישה ממשיכה עד סוף תקופת החיוב הנוכחית; אין החזר יחסי
+
+## שגיאות נפוצות
+
+### שגיאה 401 – Unauthorized
+גורם: טוקן API לא תקף, פג תוקף, או חסר.
+פתרון: צרו טוקן חדש מ-Settings > API > Generate New Token.
+ודאו שה-header נשלח: `Authorization: Bearer <TOKEN>`.
+
+### שגיאה 403 – Forbidden
+גורם: למשתמש אין הרשאה לבצע את הפעולה.
+פתרון: בקשו מ-Admin של החשבון לשנות את התפקיד שלכם.
+
+### שגיאה 404 – Not Found
+גורם: ה-resource המבוקש לא קיים או ה-ID שגוי.
+פתרון: ודאו שה-endpoint והמזהים נכונים.
+
+### שגיאה 422 – Unprocessable Entity
+גורם: גוף הבקשה חסר שדות חובה או ערכים לא חוקיים.
+פתרון: בדקו את תיעוד ה-API ל-schema המצופה.
+
+### שגיאה 429 – Too Many Requests
+גורם: חריגה ממגבלת Rate Limit.
+פתרון: המתינו דקה ונסו שוב. שקלו שדרוג מנוי לקבלת מגבלה גבוהה יותר.
+
+### שגיאה 500 – Internal Server Error
+גורם: תקלה פנימית בשרת.
+פתרון: נסו שוב לאחר מספר דקות. אם הבעיה נמשכת, פנו לתמיכה עם request ID.
+
+### שגיאה 503 – Service Unavailable
+גורם: תחזוקה מתוזמנת או עומס גבוה.
+פתרון: בדקו עדכונים ב-status.techsaas.io.
+
+## SLA – Service Level Agreement
+
+| עדיפות   | Basic      | Pro               | Enterprise |
+|----------|------------|-------------------|------------|
+| Critical | 24 שעות    | 4 שעות עסקיות     | שעה אחת    |
+| High     | 48 שעות    | 8 שעות עסקיות     | 4 שעות     |
+| Medium   | 5 ימי עסקים | 2 ימי עסקים       | 24 שעות    |
+| Low      | 10 ימי עסקים | 5 ימי עסקים      | 3 ימי עסקים |
+
+## Data & Privacy
+
+- נתונים מאוחסנים בשרתי AWS, אזור eu-west-1 (אירלנד)
+- GDPR Compliant – ניתן לבצע Subject Access Request ו-Right to Erasure
+- גיבויים אוטומטיים כל 24 שעות, נשמרים ל-30 יום
+- הצפנה בתעבורה: TLS 1.3; הצפנה במנוחה: AES-256
+- ייצוא נתונים: Settings > Privacy > Export My Data (פורמט JSON/CSV)
+- מחיקת נתונים: Settings > Privacy > Delete My Account (לא ניתן לביטול)
+
+## אינטגרציות
+
+Slack
+- ניתוב התראות, עדכוני status ודוחות לערוצי Slack
+- הגדרה: Settings > Integrations > Slack > Connect
+
+Jira
+- יצירה אוטומטית של Jira Issues מ-Bug reports
+- הגדרה: Settings > Integrations > Jira > OAuth Connect
+
+GitHub
+- חיבור ל-repo לניהול deployments ו-release notes
+- הגדרה: Settings > Integrations > GitHub > Install App
+
+Zapier
+- חיבור ל-1,000+ אפליקציות דרך Zapier Triggers/Actions
+- הגדרה: Settings > Integrations > Zapier > Create Zap
+
+SSO (Enterprise בלבד)
+- תמיכה ב-SAML 2.0 ו-OAuth 2.0
+- ספקי זהות נתמכים: Okta, Azure AD, Google Workspace
+- הגדרה: Settings > Security > Single Sign-On
+
+## תהליך Onboarding ללקוח חדש
+
+1. רישום וסיום ה-trial (14 יום חינם, אין צורך בכרטיס אשראי)
+2. הזמנת חברי צוות
+3. יצירת API Token ראשון: Settings > API > Generate New Token
+4. הגדרת Webhook לאירועים הדרושים
+5. חיבור אינטגרציות (Slack, Jira וכד')
+6. הגדרת Roles והרשאות לצוות
+
+## תהליך ביצוע Upgrade / Downgrade
+
+Upgrade:
+- Settings > Billing > Change Plan > בחרו מנוי חדש
+- החיוב החדש יתחיל מהיום ותיזקף זכות יחסית מהחיוב הקיים
+
+Downgrade:
+- השינוי ייכנס לתוקף בחיוב הבא (1 לחודש)
+- אם מספר המשתמשים הפעילים עולה על מגבלת המנוי החדש, יש להסיר משתמשים תחילה
+
+## צור קשר עם צוות התמיכה
+
+- דוא"ל: support@techsaas.io
+- צ'אט חי (Pro/Enterprise): לחצו על כפתור הצ'אט בפינה הימנית התחתונה
+- סטטוס מערכת: status.techsaas.io
+- תיעוד API: docs.techsaas.io
+- שעות תמיכה Basic/Pro: ראשון–שישי 09:00–18:00 (GMT+2)
+- שעות תמיכה Enterprise: 24/7
